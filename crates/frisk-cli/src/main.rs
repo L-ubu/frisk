@@ -27,7 +27,10 @@ struct Args {
 }
 
 fn detectors() -> Vec<Arc<dyn Detector>> {
-    vec![Arc::new(recon_core::detectors::headers::HeadersDetector) as Arc<dyn Detector>]
+    vec![
+        Arc::new(recon_core::detectors::headers::HeadersDetector) as Arc<dyn Detector>,
+        Arc::new(recon_core::detectors::tls::TlsDetector) as Arc<dyn Detector>,
+    ]
 }
 
 #[tokio::main]
