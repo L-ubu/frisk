@@ -27,8 +27,7 @@ struct Args {
 }
 
 fn detectors() -> Vec<Arc<dyn Detector>> {
-    // Populated as detectors land in later tasks. Order is irrelevant; registry runs concurrently.
-    vec![]
+    vec![Arc::new(recon_core::detectors::headers::HeadersDetector) as Arc<dyn Detector>]
 }
 
 #[tokio::main]
