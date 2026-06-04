@@ -6,7 +6,7 @@ pub fn table(r: &Report) {
     println!(
         "\n  frisk  {}    overall: {} ({}/100)\n",
         r.target.bold(),
-        r.overall_grade_label.bold(),
+        r.overall_grade.as_str().bold(),
         r.overall_score
     );
     let mut t = Table::new();
@@ -15,11 +15,11 @@ pub fn table(r: &Report) {
         let n = r
             .findings
             .iter()
-            .filter(|f| f.category.label() == c.category_label)
+            .filter(|f| f.category == c.category)
             .count();
         t.add_row(vec![
-            Cell::new(&c.category_label),
-            Cell::new(&c.grade_label),
+            Cell::new(c.category.label()),
+            Cell::new(c.grade.as_str()),
             Cell::new(c.score),
             Cell::new(n),
         ]);

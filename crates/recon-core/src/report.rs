@@ -42,7 +42,7 @@ fn weight(s: Severity) -> i32 {
     }
 }
 
-pub fn score(findings: &[Finding]) -> u8 {
+pub fn score<'a>(findings: impl IntoIterator<Item = &'a Finding>) -> u8 {
     let mut s: i32 = 100;
     for f in findings {
         s -= weight(f.severity);
@@ -52,9 +52,9 @@ pub fn score(findings: &[Finding]) -> u8 {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CategoryScore {
-    pub category_label: String,
+    pub category: Category,
     pub score: u8,
-    pub grade_label: String,
+    pub grade: Grade,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,28 +63,30 @@ pub struct Report {
     pub findings: Vec<Finding>,
     pub categories: Vec<CategoryScore>,
     pub overall_score: u8,
-    pub overall_grade_label: String,
+    pub overall_grade: Grade,
 }
 
 impl Report {
+    /// Builds a report from the categories that actually ran plus their findings.
+    /// `overall_score` is the mean of the per-category scores; only categories that
+    /// ran are included (categories that never executed do not dilute the mean).
     pub fn build(target: String, ran: &[Category], findings: Vec<Finding>) -> Self {
-        let mut per: BTreeMap<&'static str, Vec<&Finding>> = BTreeMap::new();
+        let mut per: BTreeMap<Category, Vec<&Finding>> = BTreeMap::new();
         for c in ran {
-            per.entry(c.label()).or_default();
+            per.entry(*c).or_default();
         }
         for f in &findings {
-            per.entry(f.category.label()).or_default().push(f);
+            per.entry(f.category).or_default().push(f);
         }
         let mut categories = vec![];
         let mut total: u32 = 0;
-        for (label, fs) in &per {
-            let owned: Vec<Finding> = fs.iter().map(|f| (*f).clone()).collect();
-            let sc = score(&owned);
+        for (cat, fs) in &per {
+            let sc = score(fs.iter().copied());
             total += sc as u32;
             categories.push(CategoryScore {
-                category_label: label.to_string(),
+                category: *cat,
                 score: sc,
-                grade_label: Grade::from_score(sc).as_str().to_string(),
+                grade: Grade::from_score(sc),
             });
         }
         let overall = if categories.is_empty() {
@@ -97,9 +99,11 @@ impl Report {
             findings,
             categories,
             overall_score: overall,
-            overall_grade_label: Grade::from_score(overall).as_str().to_string(),
+            overall_grade: Grade::from_score(overall),
         }
     }
+    /// Highest severity across all findings. `Info` sorts below every `--fail-on`
+    /// threshold, so detector-error `Info` findings never trip CI gating.
     pub fn max_severity(&self) -> Option<Severity> {
         self.findings.iter().map(|f| f.severity).max()
     }
@@ -125,6 +129,6 @@ mod tests {
 
     #[test]
     fn empty_score_is_perfect() {
-        assert_eq!(score(&[]), 100);
+        assert_eq!(score(std::iter::empty()), 100);
     }
 }

@@ -1,3 +1,7 @@
+//! recon-core is the reusable passive scan engine behind frisk.
+//! It runs a set of [`Detector`]s against a [`Target`] and aggregates their
+//! findings into a scored, gradable [`Report`].
+
 pub mod detector;
 pub mod detectors;
 pub mod error;

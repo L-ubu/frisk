@@ -1,6 +1,7 @@
 use clap::Parser;
 use recon_core::{Detector, Severity, Target};
 use std::path::PathBuf;
+use std::sync::Arc;
 use url::Url;
 
 mod render;
@@ -25,7 +26,7 @@ struct Args {
     fail_on: Option<String>,
 }
 
-fn detectors() -> Vec<Box<dyn Detector>> {
+fn detectors() -> Vec<Arc<dyn Detector>> {
     // Populated as detectors land in later tasks. Order is irrelevant; registry runs concurrently.
     vec![]
 }

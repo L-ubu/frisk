@@ -4,12 +4,18 @@ use crate::{
     report::Report,
     target::Target,
 };
+use std::sync::Arc;
 
-pub async fn run(target: &Target, detectors: &[Box<dyn Detector>]) -> Report {
-    let active: Vec<&Box<dyn Detector>> = detectors.iter().filter(|d| d.applies(target)).collect();
+pub async fn run(target: &Target, detectors: &[Arc<dyn Detector>]) -> Report {
+    let active: Vec<Arc<dyn Detector>> = detectors
+        .iter()
+        .filter(|d| d.applies(target))
+        .cloned()
+        .collect();
     let ran: Vec<Category> = active.iter().map(|d| d.category()).collect();
     let results = futures::future::join_all(active.iter().map(|d| {
         let cat = d.category();
+        let d = d.clone();
         async move { (cat, d.run(target).await) }
     }))
     .await;
