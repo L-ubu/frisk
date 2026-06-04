@@ -6,17 +6,17 @@ Fast passive security & audit pre-flight for any site or repo, in Rust.
 
 ## What it does
 
-`frisk` is a single fast binary that gives any website (and optionally its codebase) a quick security pat-down. Run it before a client meeting, before a deploy, or as a CI gate. It executes five checks in parallel and prints a graded A–F report with copy-paste fixes.
+`frisk` is a single fast binary that gives any website (and optionally its codebase) a quick security pat-down. Run it before a client meeting, before a deploy, or as a CI gate. It executes five checks in parallel and prints a graded report with copy-paste fixes.
 
 | Detector | What it finds |
 |---|---|
-| **Headers** | Missing/misconfigured security headers (CSP, HSTS, X-Frame-Options, …), insecure cookies, unsafe redirect chains |
-| **TLS** | Certificate expiry runway, TLS version floor, cipher hygiene, HSTS preload eligibility |
-| **Stack / EOL** | CMS/framework/server fingerprints, end-of-life version warnings (Drupal, WordPress, Laravel, nginx, …) |
-| **Secrets** | AWS keys, private key blocks, API tokens, JWTs, IBAN/PII in the repository |
-| **Deps / CVE** | Known CVEs in `composer.lock`, `package-lock.json`, and other lockfiles via the OSV.dev API |
+| **Headers** | Missing security headers (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy), CSP `unsafe-inline`, and cookies missing `Secure`/`HttpOnly` |
+| **TLS** | Certificate expiry (expired or expiring within 21 days) and handshake/validation failure (invalid chain, untrusted CA, hostname mismatch, expired) |
+| **Stack / EOL** | Technology/CMS/server fingerprints, end-of-life version warnings via endoflife.date (Drupal, WordPress, Laravel, nginx, …) |
+| **Secrets** | AWS keys, private-key blocks, generic API tokens, JWTs, and IBAN/PII patterns in the repository, reported with `file:line`. Respects `.gitignore`. |
+| **Deps / CVE** | Known CVEs in `package-lock.json` and `composer.lock` via the OSV.dev API |
 
-URL-only invocation runs the three web detectors. Add `--repo <path>` to also run the two repo detectors.
+URL-only invocation runs the three web detectors (Headers, TLS, Stack). Add `--repo <path>` to also run the two repo detectors (Secrets, Deps).
 
 ---
 
@@ -25,15 +25,19 @@ URL-only invocation runs the three web detectors. Add `--repo <path>` to also ru
 ```
 $ frisk https://prospect.example.com --repo ./their-codebase
 
-  frisk  prospect.example.com                          overall: C  (68/100)
+  frisk  prospect.example.com
   ─────────────────────────────────────────────────────────────────────
-  Headers     B    HSTS missing · CSP allows unsafe-inline · 2 more
-  TLS         A    valid 312d · TLS1.3 · HSTS preload eligible
-  Stack       D    Drupal 9.4.8  ⚠ EOL since 2023-12 · nginx 1.18
-  Secrets     F    1 AWS key (their-codebase/.env.bak:3) · 2 more
-  Deps        C    3 CVEs (1 high: lodash<4.17.21 GHSA-xxxx)
+  Severity   Category   Title
   ─────────────────────────────────────────────────────────────────────
-  18 findings · `frisk … --json` for full report · `--fix` for guidance
+  MEDIUM     headers    HSTS missing
+  MEDIUM     headers    Content-Security-Policy missing
+  HIGH       tls        Certificate expiring soon  (12 days remaining)
+  HIGH       stack      Drupal 9.4.8 is end-of-life
+  INFO       stack      Detected nginx 1.18
+  CRITICAL   secrets    AWS access key found  (their-codebase/.env.bak:3)
+  HIGH       deps       lodash 4.17.20: GHSA-p6mc-m468-83gw
+  ─────────────────────────────────────────────────────────────────────
+  7 findings · run `frisk … --json` for the full report
 ```
 
 ---
@@ -44,7 +48,7 @@ $ frisk https://prospect.example.com --repo ./their-codebase
 cargo install --path crates/frisk-cli
 ```
 
-Pre-built binaries for macOS and Linux (via `cargo-dist` GitHub Releases) and a Homebrew tap are coming in a later release.
+Pre-built binaries and a Homebrew tap are planned for a later release — see [Roadmap](#roadmap).
 
 ---
 
@@ -78,6 +82,20 @@ frisk performs passive checks only. Every web request is a normal, unauthenticat
 ## JSON output
 
 `--json` emits a stable schema suitable for automation, MCP tool integration, and downstream report generation. See [`crates/recon-core/SCHEMA.md`](crates/recon-core/SCHEMA.md) for the full contract.
+
+---
+
+## Roadmap
+
+The following are planned but not yet implemented in v0.1:
+
+- **Redirect-chain analysis** — follow redirects and flag insecure hops
+- **TLS version / cipher checks** — explicit TLS 1.0/1.1 detection and weak-cipher flagging (rustls already negotiates TLS 1.2+ so a separate floor check is intentionally deferred)
+- **HSTS preload eligibility** — check `includeSubDomains` + long `max-age` + preload flag
+- **More lockfile ecosystems** — yarn, pnpm, pipenv, go.sum / go.mod
+- **Branded PDF export** — one-click client-ready report
+- **`frisk-mcp`** — MCP server exposing `recon-core` as a tool for AI agents
+- **Prebuilt binaries / Homebrew** — via `cargo-dist` and a Homebrew tap
 
 ---
 

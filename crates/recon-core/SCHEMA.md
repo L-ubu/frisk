@@ -113,12 +113,8 @@ Consumers MUST treat both as optional when deserialising.
       "category": "headers",
       "severity": "medium",
       "title": "Content-Security-Policy missing",
-      "evidence": "Header absent from response",
-      "fix": "Add a Content-Security-Policy header. Start with 'default-src \\'self\\''.",
-      "references": [
-        "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
-        "https://cwe.mitre.org/data/definitions/693.html"
-      ]
+      "evidence": "response has no `content-security-policy` header",
+      "fix": "Define a CSP restricting script/style/connect sources."
     },
     {
       "category": "secrets",
