@@ -1,0 +1,19 @@
+[package]
+name = "frisk-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "frisk"
+path = "src/main.rs"
+
+[dependencies]
+recon-core = { path = "../recon-core" }
+tokio.workspace = true
+clap = { version = "4", features = ["derive"] }
+serde_json.workspace = true
+url.workspace = true
+comfy-table = "7"
+owo-colors = "4"
+anyhow.workspace = true
