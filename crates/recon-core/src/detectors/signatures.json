@@ -1,0 +1,14 @@
+[
+  {"name":"Drupal","header":"x-generator","regex":"Drupal (\\d+(?:\\.\\d+)?)","eol_product":"drupal"},
+  {"name":"WordPress","body_regex":"content=\"WordPress (\\d+\\.\\d+)","eol_product":"wordpress"},
+  {"name":"Joomla","body_regex":"content=\"Joomla! (\\d+\\.\\d+)","eol_product":"joomla"},
+  {"name":"nginx","header":"server","regex":"nginx/?(\\d+\\.\\d+(?:\\.\\d+)?)?","eol_product":"nginx"},
+  {"name":"Apache","header":"server","regex":"Apache/?(\\d+\\.\\d+(?:\\.\\d+)?)?","eol_product":"apache-http-server"},
+  {"name":"PHP","header":"x-powered-by","regex":"PHP/?(\\d+\\.\\d+)?","eol_product":"php"},
+  {"name":"Next.js","header":"x-powered-by","regex":"Next\\.js","eol_product":"nextjs"},
+  {"name":"Express","header":"x-powered-by","regex":"Express"},
+  {"name":"Cloudflare","header":"server","regex":"cloudflare"},
+  {"name":"Shopify","header":"x-shopify-stage","regex":".*"},
+  {"name":"Astro","body_regex":"content=\"Astro v?(\\d+\\.\\d+)?"},
+  {"name":"Varnish","header":"via","regex":"varnish"}
+]
