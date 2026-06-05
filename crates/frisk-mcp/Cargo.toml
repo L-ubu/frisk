@@ -1,0 +1,16 @@
+[package]
+name = "frisk-mcp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "frisk-mcp"
+path = "src/main.rs"
+
+[dependencies]
+recon-core = { path = "../recon-core" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util"] }
+serde_json = "1"
+url.workspace = true
+anyhow.workspace = true

@@ -15,3 +15,16 @@ pub use error::{ReconError, Result};
 pub use finding::{Category, Finding, Severity};
 pub use report::{Grade, Report};
 pub use target::Target;
+
+use std::sync::Arc;
+
+/// The full set of detectors that make up a frisk scan.
+pub fn all_detectors() -> Vec<Arc<dyn Detector>> {
+    vec![
+        Arc::new(detectors::headers::HeadersDetector),
+        Arc::new(detectors::tls::TlsDetector),
+        Arc::new(detectors::fingerprint::FingerprintDetector),
+        Arc::new(detectors::secrets::SecretsDetector),
+        Arc::new(detectors::deps::DepsDetector),
+    ]
+}

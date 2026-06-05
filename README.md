@@ -73,6 +73,33 @@ frisk https://example.com --fail-on high
 
 ---
 
+## Usage as an MCP server
+
+`frisk-mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes frisk as a single tool, `frisk_scan`, so AI agents (Claude Desktop, Cursor, and downstream tools like `web-audit-agent`) can run a scan. It speaks the MCP **stdio** transport (newline-delimited JSON-RPC) and shares the same `recon-core` engine as the CLI.
+
+The tool takes two optional arguments, `url` and `repo` (at least one required), and returns the full graded report as JSON text.
+
+```bash
+# Build the server binary
+cargo build --release -p frisk-mcp
+# → target/release/frisk-mcp
+```
+
+Example MCP client config (e.g. `claude_desktop_config.json` / Cursor):
+
+```json
+{
+  "mcpServers": {
+    "frisk": {
+      "command": "/absolute/path/to/frisk/target/release/frisk-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+---
+
 ## Ethics & scope
 
 frisk performs passive checks only. Every web request is a normal, unauthenticated request — the same surface a browser and a public CVE database already see. There is no authentication, fuzzing, exploitation, or stress-testing. This makes it safe to run against any site you have a legitimate reason to assess.
@@ -94,7 +121,6 @@ The following are planned but not yet implemented in v0.1:
 - **HSTS preload eligibility** — check `includeSubDomains` + long `max-age` + preload flag
 - **More lockfile ecosystems** — yarn, pnpm, pipenv, go.sum / go.mod
 - **Branded PDF export** — one-click client-ready report
-- **`frisk-mcp`** — MCP server exposing `recon-core` as a tool for AI agents
 - **Prebuilt binaries / Homebrew** — via `cargo-dist` and a Homebrew tap
 
 ---
@@ -106,11 +132,11 @@ frisk/
 ├── crates/
 │   ├── recon-core/   # reusable engine: Target, Detector trait, Finding/Report, scoring, registry
 │   ├── frisk-cli/    # thin clap frontend → table / --json / exit codes
-│   └── frisk-mcp/    # (coming) thin MCP server exposing recon-core as a tool
+│   └── frisk-mcp/    # MCP stdio server exposing recon-core as a `frisk_scan` tool
 └── .github/workflows/
 ```
 
-`recon-core` is a library crate designed to be embedded by other tools. `frisk-cli` and the upcoming `frisk-mcp` are thin frontends over the same engine. Downstream tools (`web-audit-agent`, `PitchProofPack`) consume `recon-core` directly via the stable JSON contract.
+`recon-core` is a library crate designed to be embedded by other tools. `frisk-cli` and `frisk-mcp` are thin frontends over the same engine, sharing the detector set via `recon_core::all_detectors()`. Downstream tools (`web-audit-agent`, `PitchProofPack`) consume `recon-core` directly via the stable JSON contract.
 
 ---
 

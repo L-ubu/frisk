@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/recon-core", "crates/frisk-cli"]
+members = ["crates/recon-core", "crates/frisk-cli", "crates/frisk-mcp"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,7 +1,6 @@
 use clap::Parser;
-use recon_core::{Detector, Severity, Target};
+use recon_core::{Severity, Target};
 use std::path::PathBuf;
-use std::sync::Arc;
 use url::Url;
 
 mod render;
@@ -26,16 +25,6 @@ struct Args {
     fail_on: Option<String>,
 }
 
-fn detectors() -> Vec<Arc<dyn Detector>> {
-    vec![
-        Arc::new(recon_core::detectors::headers::HeadersDetector) as Arc<dyn Detector>,
-        Arc::new(recon_core::detectors::tls::TlsDetector) as Arc<dyn Detector>,
-        Arc::new(recon_core::detectors::fingerprint::FingerprintDetector) as Arc<dyn Detector>,
-        Arc::new(recon_core::detectors::secrets::SecretsDetector) as Arc<dyn Detector>,
-        Arc::new(recon_core::detectors::deps::DepsDetector) as Arc<dyn Detector>,
-    ]
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -50,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
         url,
         repo: args.repo,
     };
-    let report = recon_core::registry::run(&target, &detectors()).await;
+    let report = recon_core::registry::run(&target, &recon_core::all_detectors()).await;
 
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
