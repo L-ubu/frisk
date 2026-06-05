@@ -143,7 +143,7 @@ impl Detector for DepsDetector {
             .await?;
 
         let mut out = vec![];
-        for ((name, ver, _), res) in pkgs.iter().zip(resp.results.into_iter()) {
+        for ((name, ver, _), res) in pkgs.iter().zip(resp.results) {
             for v in res.vulns {
                 out.push(
                     Finding::new(
