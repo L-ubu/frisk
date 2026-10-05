@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>frisk: fast passive security &amp; audit pre-flight, in Rust</title>
+    <meta
+      name="description"
+      content="frisk is a single fast Rust binary that gives any website (and optionally its codebase) a quick security pat-down: headers, TLS, stack/EOL, secrets and dependency CVEs — graded report with copy-paste fixes."
+    />
+    <meta property="og:title" content="frisk: fast passive security &amp; audit pre-flight, in Rust" />
+    <meta
+      property="og:description"
+      content="Five detectors in parallel — headers, TLS, stack/EOL, secrets, deps/CVEs. Run it before a client meeting, before a deploy, or as a CI gate."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://l-ubu.github.io/frisk/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔎</text></svg>"
+    />
+    <style>
+      :root {
+        --bg: #0a0c10;
+        --bg-soft: #11151c;
+        --panel: #151a23;
+        --line: #232a36;
+        --text: #e6edf3;
+        --muted: #8b98a9;
+        --dim: #5c6773;
+        --accent: #f97316;
+        --accent-dim: #ea580c;
+        --green: #4ade80;
+        --red: #f87171;
+        --amber: #fbbf24;
+        --magenta: #e879f9;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 17px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(60rem 40rem at 50% -10rem, rgba(249, 115, 22, 0.09), transparent 70%),
+          linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 4.5rem,
+          linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 4.5rem 100%;
+        opacity: 0.35;
+        mask-image: radial-gradient(70rem 50rem at 50% 0, #000 30%, transparent 75%);
+      }
+      .wrap { position: relative; max-width: 60rem; margin: 0 auto; padding: 0 1.5rem; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      header { padding: 5.5rem 0 3.5rem; text-align: center; }
+      pre.logo {
+        font-family: var(--mono);
+        font-size: clamp(0.3rem, 1.25vw, 0.68rem);
+        line-height: 1.25;
+        color: var(--accent);
+        display: inline-block;
+        text-align: left;
+        margin: 0 auto 2rem;
+        overflow: hidden;
+        text-shadow: 0 0 1.5rem rgba(249, 115, 22, 0.35);
+      }
+      h1 { font-size: clamp(1.75rem, 4.5vw, 2.6rem); line-height: 1.2; margin: 0 0 0.9rem; letter-spacing: -0.02em; }
+      .tagline { color: var(--muted); font-size: 1.12rem; max-width: 38rem; margin: 0 auto 2.25rem; }
+      .badges { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.25rem; }
+      .badge {
+        font-family: var(--mono); font-size: 0.72rem; padding: 0.28rem 0.6rem;
+        border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--bg-soft);
+      }
+      .badge b { color: var(--accent); font-weight: 600; }
+      .install {
+        display: flex; align-items: stretch; max-width: 34rem; margin: 0 auto 1rem;
+        border: 1px solid var(--line); border-radius: 0.6rem; background: var(--bg-soft); overflow: hidden;
+      }
+      .install code {
+        font-family: var(--mono); font-size: 0.82rem; padding: 0.85rem 1rem; flex: 1;
+        text-align: left; color: var(--text); white-space: nowrap; overflow-x: auto;
+      }
+      .install code .p { color: var(--accent); user-select: none; }
+      .install button {
+        font-family: var(--sans); font-size: 0.78rem; font-weight: 600; padding: 0 1.05rem;
+        border: 0; border-left: 1px solid var(--line); background: var(--panel); color: var(--muted);
+        cursor: pointer; transition: color 0.15s, background 0.15s;
+      }
+      .install button:hover { color: var(--accent); background: #1a212c; }
+      .install button.done { color: var(--accent); }
+      .hero-links { font-size: 0.9rem; color: var(--dim); }
+      .hero-links a { margin: 0 0.55rem; }
+      section { padding: 3.25rem 0; }
+      h2 { font-size: 1.35rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+      h2 .n { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; margin-right: 0.55rem; }
+      .lede { color: var(--muted); margin: 0 0 1.75rem; max-width: 42rem; }
+      .terminal {
+        border: 1px solid var(--line); border-radius: 0.7rem; background: #080a0e;
+        overflow: hidden; box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.5);
+      }
+      .tbar { display: flex; align-items: center; gap: 0.45rem; padding: 0.7rem 0.95rem; background: var(--panel); border-bottom: 1px solid var(--line); }
+      .dot { width: 0.68rem; height: 0.68rem; border-radius: 50%; background: #2c3441; }
+      .tbar span { margin-left: auto; font-family: var(--mono); font-size: 0.7rem; color: var(--dim); }
+      .terminal pre { font-family: var(--mono); font-size: 0.8rem; line-height: 1.75; margin: 0; padding: 1.15rem; overflow-x: auto; white-space: pre; }
+      .g { color: var(--green); } .r { color: var(--red); } .a { color: var(--amber); }
+      .c { color: var(--accent); } .d { color: var(--dim); } .m { color: var(--muted); }
+      .mg { color: var(--magenta); } .b { font-weight: 700; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr)); gap: 1rem; }
+      .card {
+        border: 1px solid var(--line); border-radius: 0.7rem;
+        background: linear-gradient(180deg, var(--bg-soft), rgba(17, 21, 28, 0.35));
+        padding: 1.35rem; transition: border-color 0.18s, transform 0.18s;
+      }
+      .card:hover { border-color: #33405280; transform: translateY(-2px); }
+      .card h3 { font-size: 0.94rem; margin: 0 0 0.5rem; display: flex; align-items: baseline; gap: 0.5rem; }
+      .card h3 i { font-family: var(--mono); font-style: normal; color: var(--accent); font-size: 0.85rem; }
+      .card p { margin: 0; font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { text-align: left; padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--line); }
+      th { color: var(--dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+      td code { font-family: var(--mono); font-size: 0.84rem; color: var(--accent); white-space: nowrap; }
+      td:last-child { color: var(--muted); }
+      .reason { border-left: 2px solid var(--line); padding: 0 0 0 1.15rem; margin-bottom: 1.6rem; }
+      .reason:hover { border-left-color: var(--accent-dim); }
+      .reason h3 { font-size: 0.98rem; margin: 0 0 0.35rem; }
+      .reason p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+      .reason code, .lede code, .card p code {
+        font-family: var(--mono); font-size: 0.85em; background: var(--panel);
+        padding: 0.1rem 0.32rem; border-radius: 0.25rem; color: var(--text);
+      }
+      footer { padding: 3rem 0 4rem; text-align: center; color: var(--dim); font-size: 0.86rem; border-top: 1px solid var(--line); margin-top: 2rem; }
+      @media (max-width: 40rem) {
+        body { font-size: 16px; }
+        header { padding: 3.5rem 0 2.5rem; }
+        .terminal pre { font-size: 0.68rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <pre class="logo" aria-label="frisk">
+███████╗██████╗ ██╗███████╗██╗  ██╗
+██╔════╝██╔══██╗██║██╔════╝██║ ██╔╝
+█████╗  ██████╔╝██║███████╗█████╔╝
+██╔══╝  ██╔══██╗██║╚════██║██╔═██╗
+██║     ██║  ██║██║███████║██║  ██╗
+╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝</pre>
+
+        <h1>A quick security pat-down for any site or repo.</h1>
+        <p class="tagline">
+          One fast Rust binary. Five detectors in parallel. A graded report with copy-paste fixes —
+          before a client meeting, before a deploy, or as a CI gate.
+        </p>
+
+        <div class="badges">
+          <span class="badge">detectors <b>5</b></span>
+          <span class="badge">engine <b>Rust</b></span>
+          <span class="badge">output <b>table · json</b></span>
+          <span class="badge">CI gate <b>--fail-on</b></span>
+        </div>
+
+        <div class="install">
+          <code id="cmd"><span class="p">$ </span>cargo install --path crates/frisk-cli</code>
+          <button id="copy" type="button">Copy</button>
+        </div>
+
+        <p class="hero-links">
+          <a href="https://github.com/L-ubu/frisk">GitHub</a>·
+          <a href="#report">The report</a>· <a href="#features">Detectors</a>·
+          <a href="#usage">Usage</a>· <a href="#why">Why</a>
+        </p>
+      </header>
+
+      <section id="report">
+        <h2><span class="n">01</span>One command, ranked findings</h2>
+        <p class="lede">
+          Point it at a URL and it runs the three web detectors. Add <code>--repo</code> and it
+          pats down the codebase too. Worst things first, fixes included.
+        </p>
+
+        <div class="terminal">
+          <div class="tbar">
+            <i class="dot"></i><i class="dot"></i><i class="dot"></i><span>zsh</span>
+          </div>
+          <pre><span class="d">$</span> frisk https://prospect.example.com --repo ./their-codebase
+
+  <span class="c b">frisk</span>  <span class="m">prospect.example.com</span>
+  <span class="d">─────────────────────────────────────────────────────────────────</span>
+  <span class="c b">Severity   Category   Title</span>
+  <span class="d">─────────────────────────────────────────────────────────────────</span>
+  <span class="a">MEDIUM</span>     headers    HSTS missing
+  <span class="a">MEDIUM</span>     headers    Content-Security-Policy missing
+  <span class="r">HIGH</span>       tls        Certificate expiring soon <span class="d">(12 days remaining)</span>
+  <span class="r">HIGH</span>       stack      Drupal 9.4.8 is end-of-life
+  <span class="d">INFO</span>       stack      Detected nginx 1.18
+  <span class="mg b">CRITICAL</span>   secrets    AWS access key found <span class="d">(their-codebase/.env.bak:3)</span>
+  <span class="r">HIGH</span>       deps       lodash 4.17.20: GHSA-p6mc-m468-83gw
+  <span class="d">─────────────────────────────────────────────────────────────────</span>
+  <span class="a">7 findings</span> <span class="d">· run `frisk … --json` for the full report</span></pre>
+        </div>
+      </section>
+
+      <section id="features">
+        <h2><span class="n">02</span>The five detectors</h2>
+
+        <div class="grid">
+          <div class="card">
+            <h3><i>◆</i> Headers</h3>
+            <p>Missing HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy — plus <code>unsafe-inline</code> and insecure cookies.</p>
+          </div>
+          <div class="card">
+            <h3><i>◆</i> TLS</h3>
+            <p>Certificate expiry (expired or under 21 days), invalid chains, untrusted CAs, hostname mismatches.</p>
+          </div>
+          <div class="card">
+            <h3><i>◆</i> Stack / EOL</h3>
+            <p>Fingerprints the CMS, framework and server, then checks endoflife.date so "Drupal 9" comes with a deadline attached.</p>
+          </div>
+          <div class="card">
+            <h3><i>◆</i> Secrets</h3>
+            <p>AWS keys, private-key blocks, API tokens, JWTs and IBAN/PII patterns in the repo, reported with <code>file:line</code>. Respects <code>.gitignore</code>.</p>
+          </div>
+          <div class="card">
+            <h3><i>◆</i> Deps / CVE</h3>
+            <p>Known CVEs in <code>package-lock.json</code> and <code>composer.lock</code> via the OSV.dev API.</p>
+          </div>
+          <div class="card">
+            <h3><i>◆</i> CI-ready</h3>
+            <p><code>--fail-on critical</code> exits non-zero when it matters. <code>--json</code> pipes the whole report anywhere.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="usage">
+        <h2><span class="n">03</span>Usage</h2>
+        <p class="lede">Each flag answers one question.</p>
+
+        <table>
+          <thead>
+            <tr><th>Command</th><th>Answers</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>frisk https://example.com</code></td><td>Is this site's front door locked? (Headers, TLS, Stack)</td></tr>
+            <tr><td><code>frisk … --repo ./code</code></td><td>…and what's leaking inside? (+ Secrets, Deps)</td></tr>
+            <tr><td><code>frisk … --json</code></td><td>Can I pipe this into something else?</td></tr>
+            <tr><td><code>frisk … --fail-on critical</code></td><td>Should this deploy be blocked?</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="why">
+        <h2><span class="n">04</span>Why it exists</h2>
+        <p class="lede">The decisions worth knowing about, written down.</p>
+
+        <div class="reason">
+          <h3>Passive means safe</h3>
+          <p>frisk never attacks anything. It reads what any browser would see, plus the repo you point it at. Safe to run against a prospect before the first call.</p>
+        </div>
+        <div class="reason">
+          <h3>Fast enough to actually run</h3>
+          <p>Five detectors in parallel, one binary, results in seconds. A check that takes minutes is a check that gets skipped.</p>
+        </div>
+        <div class="reason">
+          <h3>Findings come with fixes</h3>
+          <p>Every finding prints the remediation, not just the problem. Copy, paste, done — that's what makes it a pre-flight instead of a lecture.</p>
+        </div>
+      </section>
+
+      <footer>
+        <p>MIT licensed · built by <a href="https://github.com/L-ubu">L-ubu</a> · also on <a href="https://github.com/L-ubu/homebrew-frisk">Homebrew</a></p>
+        <p><a href="https://github.com/L-ubu/frisk">github.com/L-ubu/frisk</a></p>
+      </footer>
+    </div>
+
+    <script>
+      const button = document.getElementById("copy");
+      button.addEventListener("click", async () => {
+        const command = "cargo install --path crates/frisk-cli";
+        try {
+          await navigator.clipboard.writeText(command);
+        } catch {
+          const area = document.createElement("textarea");
+          area.value = command;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          area.remove();
+        }
+        button.textContent = "Copied";
+        button.classList.add("done");
+        setTimeout(() => {
+          button.textContent = "Copy";
+          button.classList.remove("done");
+        }, 1800);
+      });
+    </script>
+  </body>
+</html>
